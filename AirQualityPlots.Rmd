@@ -1,0 +1,124 @@
+---
+title: "AirQualityPlots"
+output: html_document
+---
+
+```{r}
+p <- window(Pza_Espana_weekly_ts, start=c(2001,1), end=c(2001,52))
+autoplot(p, color = "navy")
+ggseasonplot(p)
+```
+
+```{r}
+q<- window(Pza_Espana_weekly_ts, start=2014, end=c(2017,52))
+autoplot(q)
+ggseasonplot(q)
+```
+
+```{r}
+a <- window(Pza_Espana_weekly_ts, start= 2015)
+autoplot(a, color="navy")
+```
+```{r}
+ggAcf(Pza_Espana_weekly_ts,lag.max = 52)
+```
+```{r}
+additive_decomposition_sales<-decompose(Pza_Espana_weekly_ts)
+multiplicative_decomposition_sales<-decompose(Pza_Espana_weekly_ts, "multiplicative")
+
+autoplot(additive_decomposition_sales)
+autoplot(multiplicative_decomposition_sales)
+
+
+
+```
+```{r}
+accuracy(additive_decomposition_sales$trend, Pza_Espana_weekly_ts)
+accuracy(multiplicative_decomposition_sales$trend, Pza_Espana_weekly_ts)
+
+```
+```{r}
+autoplot(Pza_Espana_weekly_ts,color="navy")+autolayer(additive_decomposition_sales$trend, size=1,color="yellow")
+```
+```{r}
+autoplot(Pza_Espana_weekly_ts, color = "navy") + autolayer(fit.afnst.p_esp$auto.arima$x, color="yellow",size=0.2)
+```
+
+```{r}
+autoplot(Pza_Espana_weekly_ts, color = "navy") + autolayer(fit.afnst.p_esp$thetam$x, color="yellow",size=0.2)
+```
+
+```{r}
+autoplot(Pza_Espana_weekly_ts, color = "navy") + autolayer(fit.afnst.p_esp$nnetar$x, color="yellow",size=0.2)
+```
+```{r}
+plot(fit.afnst.p_esp$auto.arima$x,col="navy")+
+  lines(fitted(fit.afnst.p_esp$auto.arima),col="red")+
+  title("Arima")
+```
+```{r}
+plot(fit.afnst.p_esp$thetam$x,col="navy")+
+  lines(fitted(fit.afnst.p_esp$thetam),col="red")+
+  title("Thetam")
+```
+```{r}
+plot(fit.afnst.p_esp$nnetar$x,col="navy")+
+  lines(fitted(fit.afnst.p_esp$nnetar),col="red")+
+  title("Neural Network")
+```
+```{r}
+plot(fit.afnst.p_esp$tbats$x,col="navy")+
+  lines(fitted(fit.afnst.p_esp$tbats),col="red")+
+  title("TBATS")
+```
+```{r}
+plot(fit.afnst.p_esp$stlm$x,col="navy")+
+  lines(fitted(fit.afnst.p_esp$stlm),col="red")+
+  title("STLM")
+```
+```{r}
+train1 <-window(Pza_Espana_weekly_ts, start = c(2015, 1))
+
+
+fit_afnsttt <- hybridModel(train1, models = "afns", weights="equal")
+```
+
+```{r}
+plot(fit_afnsttt$nnetar$x,col="navy")+
+  lines(fitted(fit_afnsttt$nnetar),col="red")+
+  title("Neural Network")
+```
+```{r}
+plot(fit_afnsttt$x,col="navy")+
+  lines(fitted(fit_afnsttt),col="red")+
+  title("AFNS")
+```
+
+```{r}
+summary(fit_afnst$thetam)
+```
+
+```{r}
+fc_t <- forecast(fit_afnst$thetam, h=52)
+accuracy(fc_t,test)
+```
+
+```{r}
+a <- window(Pza_Espana_weekly_ts, start=c(2017,1))
+ggseasonplot(a)
+```
+
+```{r}
+fc1  <- forecast(fit.afns.p_esp$auto.arima, h=52*2)
+autoplot(fc1)
+```
+
+```{r}
+fc1  <- forecast(fit.afns.p_esp$thetam, h=52*2)
+autoplot(fc1)
+```
+```{r}
+fc1  <- forecast(fit.afns.p_esp$stlm, h=52*2)
+autoplot(fc1)
+```
+

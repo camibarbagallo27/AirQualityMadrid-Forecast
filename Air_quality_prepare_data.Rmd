@@ -1,0 +1,344 @@
+---
+title: "Preparing Air Quality"
+---
+
+# Open libraries
+```{r}
+library(forecast)
+library(ggplot2)
+library(fpp2)
+library(readr)
+library(plyr)
+library(lubridate)
+library(dplyr)
+library(xts)
+library(TSstudio)
+```
+
+# Join Data
+```{r}
+#2001
+a2001 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2001.csv")
+a2001$MXY <- NULL
+a2001$NOx <- NULL
+a2001$OXY <- NULL
+a2001$PXY <- NULL
+```
+
+```{r}
+# 2002
+a2002 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2002.csv")
+a2002$MXY <- NULL
+a2002$NOx <- NULL
+a2002$OXY <- NULL
+a2002$PXY <- NULL
+atotal<-rbind(a2001,a2002)
+```
+
+```{r}
+# 2003
+a2003 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2003.csv")
+a2003$MXY <- NULL
+a2003$NOx <- NULL
+a2003$OXY <- NULL
+a2003$PXY <- NULL
+atotal<-rbind(atotal,a2003)
+```
+
+```{r}
+# 2004
+a2004 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2004.csv")
+a2004$MXY <- NULL
+a2004$NOx <- NULL
+a2004$OXY <- NULL
+a2004$PXY <- NULL
+a2004$PM25 <- NULL
+atotal<-rbind(atotal,a2004)
+```
+
+```{r}
+# 2005
+a2005 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2005.csv")
+a2005$MXY <- NULL
+a2005$NOx <- NULL
+a2005$OXY <- NULL
+a2005$PXY <- NULL
+a2005$PM25 <- NULL
+atotal<-rbind(atotal,a2005)
+```
+
+```{r}
+# 2006
+a2006 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2006.csv")
+a2006$MXY <- NULL
+a2006$NOx <- NULL
+a2006$OXY <- NULL
+a2006$PXY <- NULL
+a2006$PM25 <- NULL
+atotal<-rbind(atotal,a2006)
+```
+
+```{r}
+# 2007
+a2007 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2007.csv")
+a2007$MXY <- NULL
+a2007$NOx <- NULL
+a2007$OXY <- NULL
+a2007$PXY <- NULL
+a2007$PM25 <- NULL
+atotal<-rbind(atotal,a2007)
+```
+
+```{r}
+# 2008
+a2008 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2008.csv")
+a2008$MXY <- NULL
+a2008$NOx <- NULL
+a2008$OXY <- NULL
+a2008$PXY <- NULL
+a2008$PM25 <- NULL
+atotal<-rbind(atotal,a2008)
+```
+
+```{r}
+# 2009
+a2009 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2009.csv")
+a2009$MXY <- NULL
+a2009$NOx <- NULL
+a2009$OXY <- NULL
+a2009$PXY <- NULL
+a2009$PM25 <- NULL
+atotal<-rbind(atotal,a2009)
+```
+
+```{r}
+# 2010
+a2010 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2010.csv")
+a2010$MXY <- NULL
+a2010$NOx <- NULL
+a2010$OXY <- NULL
+a2010$PXY <- NULL
+a2010$PM25 <- NULL
+atotal<-rbind(atotal,a2010)
+```
+
+```{r}
+# 2011
+a2011 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2011.csv")
+a2011$PM25 <- NULL
+a2011$NO <- NULL
+atotal<-rbind(atotal,a2011)
+```
+
+```{r}
+# 2012
+a2012 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2012.csv")
+a2012$PM25 <- NULL
+a2012$NO <- NULL
+atotal<-rbind(atotal,a2012)
+```
+
+```{r}
+# 2013
+a2013 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2013.csv")
+a2013$PM25 <- NULL
+a2013$NO <- NULL
+atotal<-rbind(atotal,a2013)
+```
+
+```{r}
+# 2014
+a2014 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2014.csv")
+a2014$PM25 <- NULL
+a2014$NO <- NULL
+atotal<-rbind(atotal,a2014)
+```
+
+```{r}
+# 2015
+a2015 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2015.csv")
+a2015$PM25 <- NULL
+a2015$NO <- NULL
+atotal<-rbind(atotal,a2015)
+```
+
+```{r}
+# 2016
+a2016 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2016.csv")
+a2016$PM25 <- NULL
+a2016$NO <- NULL
+atotal<-rbind(atotal,a2016)
+```
+
+```{r}
+# 2017
+a2017 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2017.csv")
+a2017$PM25 <- NULL
+a2017$NO <- NULL
+a2017$CH4 <- NULL
+a2017$NOx <- NULL
+atotal<-rbind(atotal,a2017)
+```
+
+```{r}
+# 2018
+a2018 <- read_csv("~/OneDrive/Documentos/BDBA/2/2.1/Programming DMA/Project/air-quality-madrid/csvs_per_year/csvs_per_year/madrid_2018.csv")
+a2018$PM25 <- NULL
+a2018$NO <- NULL
+a2018$CH4 <- NULL
+a2018$NOx <- NULL
+atotal<-rbind(atotal,a2018)
+atotal <- as.data.frame(atotal)
+```
+
+# Deal with NA
+```{r}
+#Transform NA as 0
+atotal[is.na(atotal)] <- 0
+summary(atotal)
+str(atotal)
+```
+
+# Select NO_2
+```{r}
+NO_2total <- atotal
+NO_2total$BEN <- NULL
+NO_2total$CO <- NULL
+NO_2total$EBE <- NULL
+NO_2total$NMHC <- NULL
+NO_2total$O_3 <- NULL
+NO_2total$PM10 <- NULL
+NO_2total$SO_2 <- NULL
+NO_2total$TCH <- NULL
+NO_2total$TOL <- NULL
+```
+
+# Configurate date variable
+```{r}
+NO_2total$Date <- as.Date(NO_2total$date)
+NO_2total$Time <- format(NO_2total$date,"%H:%M:%S")
+NO_2total$date <- NULL
+```
+
+# Divide into stations
+```{r}
+Pza_Espana <- NO_2total[NO_2total$station == 28079004,]
+Casa_Campo <- NO_2total[NO_2total$station == 28079024,]
+```
+
+# Plaza Espa?a
+#Checking the structure of one of the datasets Pza_Espana
+```{r}
+str(Pza_Espana)
+```
+
+#Convert into weeks
+```{r}
+# Converting the initial date into date
+date <- as.Date(as.character(Pza_Espana$Date), "%Y-%m-%d")
+#Leaving the date as an index and the NO_2 as the variable of interest: extended time series
+Pza_Espana_xts <- xts(Pza_Espana$NO_2, date)
+```
+
+#Check structure, length and number of columns
+```{r}
+str(Pza_Espana_xts)
+length(Pza_Espana_xts)
+ncol(Pza_Espana_xts)
+```
+
+#Convert the extended time series into weekly averaging the values
+```{r}
+#Set up the end of the week for the time series
+week.end.pe <- endpoints(Pza_Espana_xts, on = "weeks")
+
+#Transform the data into weekly data using averages
+Pza_Espana_weekly <- period.apply(Pza_Espana_xts, INDEX = week.end.pe, FUN = mean)
+```
+
+#Convert the xts class to a ts class
+```{r}
+#Convert xts to ts
+Pza_Espana_weekly_ts <- xts_to_ts(Pza_Espana_weekly, start = as.Date("2001-01-07"), frequency = 52)
+
+#head() and tail() will also show the attributes, focus on the first values although it will make it a bit slower to calculate all of them
+```
+
+#Check the conversion and plot the ts()
+```{r}
+#Plot the ts, seasonality, subseries and display
+autoplot(Pza_Espana_weekly_ts)
+ggseasonplot(Pza_Espana_weekly_ts)
+ggsubseriesplot(Pza_Espana_weekly_ts)
+ggtsdisplay(Pza_Espana_weekly_ts)
+```
+
+#Create a train and a test set
+```{r}
+#In this case your second number in "end" and "start" is a week within the year! so from 1-52
+train.Pza_Espana <-window(Pza_Espana_weekly_ts, end = c(2016, 21))
+test.Pza_Espana <-window(Pza_Espana_weekly_ts, start = c(2016,22))
+
+#Plot both to see that it works properly
+autoplot(train.Pza_Espana)
+autoplot(test.Pza_Espana)
+```
+
+
+# Casa de Campo
+#Checking the structure of one of the datasets Casa_Campo
+```{r}
+str(Casa_Campo)
+```
+
+#Convert into weeks
+```{r}
+# Converting the initial date into date
+date <- as.Date(as.character(Casa_Campo$Date), "%Y-%m-%d")
+#Leaving the date as an index and the NO_2 as the variable of interest: extended time series
+Casa_Campo_xts <- xts(Casa_Campo$NO_2, date)
+```
+
+#Check structure, length and number of columns
+```{r}
+str(Casa_Campo_xts)
+length(Casa_Campo_xts)
+ncol(Casa_Campo_xts)
+```
+
+#Convert the extended time series into weekly averaging the values
+```{r}
+#Set up the end of the week for the time series
+week.end.cc <- endpoints(Casa_Campo_xts, on = "weeks")
+
+#Transform the data into weekly data using averages
+Casa_Campo_weekly <- period.apply(Casa_Campo_xts, INDEX = week.end.cc, FUN = mean)
+```
+
+#Convert the xts class to a ts class
+```{r}
+#Convert xts to ts
+Casa_Campo_weekly_ts <- xts_to_ts(Casa_Campo_weekly, start = as.Date("2001-01-07"), frequency = 52)
+
+#head() and tail() will also show the attributes, focus on the first values although it will make it a bit slower to calculate all of them
+```
+
+#Check the conversion and plot the ts()
+```{r}
+#Plot the ts, seasonality, subseries and display
+autoplot(Casa_Campo_weekly_ts)
+ggseasonplot(Casa_Campo_weekly_ts)
+ggsubseriesplot(Casa_Campo_weekly_ts)
+ggtsdisplay(Casa_Campo_weekly_ts)
+```
+
+#Create a train and a test set
+```{r}
+#In this case your second number in "end" and "start" is a week within the year! so from 1-52
+train.Casa_Campo <-window(Casa_Campo_weekly_ts, end = c(2016, 21))
+test.Casa_Campo <-window(Casa_Campo_weekly_ts, start = c(2016,22))
+
+#Plot both to see that it works properly
+autoplot(train.Casa_Campo)
+autoplot(test.Casa_Campo)
+```

@@ -1,0 +1,594 @@
+---
+title: "AirQuality_FC"
+output: html_document
+---
+#LIBRARIES
+```{r}
+library(forecast)
+library(expsmooth)
+library(fpp2)
+library(seasonal)
+library(fma)
+library(astsa)
+library(urca)
+library(tseries)
+library(seastests)
+library(splines)
+library(ggplot2)
+library(lubridate)
+library(neuralnet)
+library(rugarch)
+library(forecastHybrid)
+```
+#PLAZA ESPAÑA
+## Visual Inspection
+```{r}
+ggseasonplot(Pza_Espana_weekly_ts)
+ggsubseriesplot(Pza_Espana_weekly_ts)
+autoplot(Pza_Espana_weekly_ts)
+ggAcf(Pza_Espana_weekly_ts)
+```
+Conclusions: The data could be seasonal(when looking at the ACF, from the seasonplot we can't obtain any conclusions). The trend is slightly negative.
+## Ts display of Weekly data
+```{r}
+ggtsdisplay(Pza_Espana_weekly_ts)
+```
+Conclusions: Data doesn´t look stationary, further tests will be conducted. BoxCox may be necessary.
+## BoxCox
+```{r}
+bc.Pza_Espana <- BoxCox(Pza_Espana_weekly_ts, lambda = BoxCox.lambda(Pza_Espana_weekly_ts))
+gridExtra::grid.arrange(autoplot(Pza_Espana_weekly_ts), autoplot(bc.Pza_Espana), nrow=2)
+ggtsdisplay(bc.Pza_Espana)
+```
+Conclusion: The timeseries doesn't change a lot when conducting the BoxCox transformation, thus we continue without it
+##ARIMA
+###Deseasonalize
+```{r}
+nsdiffs(Pza_Espana_weekly_ts, test = "seas")
+isSeasonal(Pza_Espana_weekly_ts)
+summary(wo(Pza_Espana_weekly_ts))
+```
+Conclusions: All tests indicate there is no seasonality, so we don't need to deseasonalize
+###Detrend
+```{r}
+adf.test(Pza_Espana_weekly_ts)
+summary(ur.kpss(Pza_Espana_weekly_ts))
+ndiffs(Pza_Espana_weekly_ts, test = "adf")
+```
+Conclusions: ADF indicates data is stationary and KPSS indicates data is not stationary. From visual inspection in the ggtsdisplay we believe it is not stationary, eitherway we will go through both paths. Path 1 follows the conclusions from ADF and path 2 from KPSS.
+###Path 1: ADF, no differencing
+```{r}
+ndt.Pza_Espana <- Pza_Espana_weekly_ts
+ggtsdisplay(ndt.Pza_Espana, lag.max = 52)
+```
+Conclusions: visual it is not stationary, we try the following Arima models:ARIMA(3,0,0), ARIMA(3,0,1), ARIMA(1,0,2),ARIMA(1,1,0) .
+
+```{r}
+# Model 1 (3,0,0)
+(arima300.p_esp <- Arima(ndt.Pza_Espana, order = c(3,0,0), include.mean = T))
+# Model 2 (3,0,1)
+(arima301.p_esp <- Arima(ndt.Pza_Espana, order = c(3,0,1), include.mean = T))
+# Model 3 (1,0,2)
+(arima102.p_esp <- Arima(ndt.Pza_Espana, order = c(1,0,2), include.mean = F))
+#Model 4 (1,1,0)
+(arima110.p_esp <- Arima(ndt.Pza_Espana, order = c(1,1,0), include.mean = F))
+```
+Conclusions: The best model in terms of AICc is ARIMA(3,0,1).
+#### Autoarima: ATTENTION RUNS SLOWLY
+```{r}
+#(auto_Pza.Espana_ndt<-auto.arima(ndt.Pza_Espana, approximation = F, stepwise = F, trace = T, nmodels = 100, ic = c("aicc"), test = c("adf"), seasonal = F, stationary = F))
+```
+Conclusion: One model we will also considered is the one proposed by autoarima, namely ARIMA(1,0,2) with non-zero mean.
+#### Forecast
+##### ARIMA (3,0,1)
+```{r}
+(fit301.p_esp <- Arima(train.Pza_Espana, order = c(3,0,1), include.mean = T))
+fc301.p_esp <- forecast (fit301.p_esp, h = 52*2)
+accuracy(fc301.p_esp,test.Pza_Espana)
+checkresiduals(fc301.p_esp)
+shapiro.test(fc301.p_esp$residuals)
+```
+##### ARIMA (1,0,2)
+```{r}
+(fit102.p_esp <- Arima(train.Pza_Espana, order = c(1,0,2), include.mean = T))
+fc102.p_esp <- forecast (fit102.p_esp, h = 52*2)
+accuracy(fc102.p_esp,test.Pza_Espana)
+checkresiduals(fc102.p_esp)
+shapiro.test(fc102.p_esp$residuals)
+```
+
+### Path 2: KPSS, 1 difference
+```{r}
+dt.Pza_Espana <- diff(Pza_Espana_weekly_ts)
+ggtsdisplay(dt.Pza_Espana, lag.max = 52)
+```
+Conclusion: From visual inspection we think it is already stationary, but we will check with the tests just in case.
+```{r}
+adf.test(dt.Pza_Espana)
+summary(ur.kpss(dt.Pza_Espana))
+ndiffs(dt.Pza_Espana, test = "adf")
+```
+Conclusions: ADF indicates our ts is stationary and KPSS agrees, therefore we conclude our ts is already stationary. We will try the following ARIMA models: ARIMA(0,1,2), ARIMA(0,1,1),ARIMA(2,1,0), ARIMA(2,1,2), ARIMA(1,1,1)ARIMA(2,1,1).
+```{r}
+# Model 11 (0,1,2)
+(arima012.p_esp <- Arima(ndt.Pza_Espana, order = c(0,1,2), include.mean = T))
+# Model 21 (0,1,1)
+(arima011.p_esp <- Arima(ndt.Pza_Espana, order = c(0,1,1), include.mean = T))
+# Model 31 (2,1,0)
+(arima210.p_esp <- Arima(ndt.Pza_Espana, order = c(2,1,0), include.mean = T))
+# Model 41 (2,1,2)
+(arima212.p_esp <- Arima(ndt.Pza_Espana, order = c(2,1,2), include.mean = T))
+# Model 51 (1,1,1)
+(arima111.p_esp <- Arima(ndt.Pza_Espana, order = c(1,1,1), include.mean = T))
+# Model 61 (2,1,1)
+(arima211.p_esp <- Arima(ndt.Pza_Espana, order = c(2,1,1), include.mean = T))
+```
+Conclusion: The best ARIMA model in terms of AICc is ARIMA(2,1,2).
+#### Autoarima : ATTENTION RUNS SLOWLY
+```{r}
+#(auto_Pza.Espana_dt<-auto.arima(ndt.Pza_Espana, approximation = F, stepwise = F, trace = T, nmodels = 100, ic = c("aicc"), test = c("kpss"), seasonal = F, stationary = F))
+```
+Conclusion: One model we will also considered is the one proposed by autoarima, namely ARIMA(3,1,2)
+#### Forecast
+##### ARIMA (2,1,2)
+```{r}
+(fit212.p_esp <- Arima(train.Pza_Espana, order = c(2,1,2), include.mean = T))
+fc212.p_esp <- forecast (fit212.p_esp, h = 52*2)
+accuracy(fc212.p_esp,test.Pza_Espana)
+checkresiduals(fc212.p_esp)
+shapiro.test(fc212.p_esp$residuals)
+```
+##### ARIMA (3,1,2)
+```{r}
+(fit312.p_esp <- Arima(train.Pza_Espana, order = c(3,1,2), include.mean = T))
+fc312.p_esp <- forecast (fit312.p_esp, h = 52*2)
+accuracy(fc312.p_esp,test.Pza_Espana)
+checkresiduals(fc312.p_esp)
+shapiro.test(fc312.p_esp$residuals)
+```
+######Overall Conclusion of ARIMA
+The best model in terms of MAPE is ARIMA(3,1,2) with a MAPE of 21,28281 and an AICc of 7087,75.
+## Linear Model
+```{r}
+trend <- seq_along(train.Pza_Espana)
+(fitalm.p_esp <- auto.arima(train.Pza_Espana, xreg=trend))
+fcalm.p_esp<-forecast(fitalm.p_esp, xreg = trend, h = 52*2)
+accuracy(fcalm.p_esp, test.Pza_Espana)
+checkresiduals(fcalm.p_esp$residuals)
+shapiro.test(fcalm.p_esp$residuals)
+```
+```{r}
+(fit102.t.p_esp<-Arima(train.Pza_Espana, xreg = trend ,order=c(1,0,2)))
+fc102.t.p_esp <- forecast(fit102.t.p_esp, xreg = trend, h = 52*2)
+accuracy(fc102.t.p_esp,test.Pza_Espana)
+checkresiduals(fc102.t.p_esp, lag=300)
+shapiro.test(fc102.t.p_esp$residuals)
+```
+
+## ETS
+```{r}
+(fitets.p_esp <- ets(train.Pza_Espana, model = "ZZZ" , damped = FALSE))
+fcets.p_esp <- forecast (fitets.p_esp, h = 52*2)
+accuracy(fcets.p_esp,test.Pza_Espana)
+checkresiduals(fcets.p_esp)
+shapiro.test(fcets.p_esp$residuals)
+```
+Conclusion: When using ets we can see a slight improvement in the MAPE, it decreases by 0,23747, but still our residuals aren't white noise nor normal.
+##Neural Nets
+```{r}
+(fitnn.p_esp<-nnetar(train.Pza_Espana))
+fcnn.p_esp<-forecast(fitnn.p_esp, h = 52*2)
+accuracy(fcnn.p_esp,test.Pza_Espana)
+checkresiduals(fcnn.p_esp)
+Box.test(fcnn.p_esp)
+```
+## Hybrid Model
+```{r}
+args(hybridModel)
+```
+### Afnst Equal: ATTENTION gives an error, but gives output, don't run everything at once
+```{r}
+#fit.afnst.p_esp <- hybridModel(train.Pza_Espana, models = "afnst", weights="equal")
+#fc.afnst.p_esp <- forecast(fit.afnst.p_esp, h=52*2)
+#accuracy(fc.afnst.p_esp,test.Pza_Espana)
+#checkresiduals(fc.afnst.p_esp, lag = 156)
+#shapiro.test(fc.afnst.p_esp$residuals)
+```
+### Afnst insample: Gives error because of insample
+```{r}
+#fit.afnst.in.p_esp <- hybridModel(train.Pza_Espana, models = "afnst", weights="insample")
+#fc.afnst.in.p_esp <- forecast(fit.afnst.in.p_esp, h=52*2)
+#accuracy(fc.afnst.in.p_esp,test.Pza_Espana)
+#checkresiduals(fc.afnst.in.p_esp, lag = 156)
+#shapiro.test(fc.afnst.in.p_esp$residuals)
+```
+### Afns equal
+```{r}
+fit.afns.p_esp <- hybridModel(train.Pza_Espana, models = "afns", weights="equal")
+fc.afns.p_esp<- forecast(fit.afns.p_esp, h=52*2)
+autoplot(fc.afns.p_esp)
+accuracy(fc.afns.p_esp, test.Pza_Espana)
+checkresiduals(fc.afns.p_esp,  lag = 156)
+```
+
+
+### Afns insample
+```{r}
+fit.afns.in.p_esp <- hybridModel(train.Pza_Espana, models = "afns", weights="insample")
+fc.afns.in.p_esp <- forecast(fit.afns.in.p_esp, h=52*2)
+autoplot(fc.afns.in.p_esp)
+accuracy(fc.afns.in.p_esp, test.Pza_Espana)
+checkresiduals(fc.afns.in.p_esp,  lag = 156)
+```
+
+##Benchmark
+###Average
+```{r}
+fitav.p_esp <- meanf(train.Pza_Espana, h = 52*2)
+fcav.p_esp <- forecast (fitav.p_esp)
+accuracy(fcav.p_esp,test.Pza_Espana)
+checkresiduals(fcav.p_esp)
+shapiro.test(fcav.p_esp$residuals)
+```
+### Random Walk
+```{r}
+fitrw.p_esp <- rwf(train.Pza_Espana, h = 52*2)
+fcrw.p_esp <- forecast (fitrw.p_esp)
+accuracy(fcrw.p_esp,test.Pza_Espana)
+checkresiduals(fcrw.p_esp)
+shapiro.test(fcrw.p_esp$residuals)
+```
+### Seasonal Naive
+```{r}
+fitsn.p_esp <- snaive(train.Pza_Espana, h = 52*2)
+fcsn.p_esp <- forecast (fitsn.p_esp)
+accuracy(fcsn.p_esp,test.Pza_Espana)
+checkresiduals(fcsn.p_esp)
+shapiro.test(fcsn.p_esp$residuals)
+```
+
+###Random Walk with Drift
+```{r}
+fitrwd.p_esp <- rwf(train.Pza_Espana, h = 52*2, drift = T)
+fcrwd.p_esp<- forecast (fitrwd.p_esp)
+accuracy(fcrwd.p_esp,test.Pza_Espana)
+checkresiduals(fcrwd.p_esp)
+shapiro.test(fcrwd.p_esp$residuals)
+```
+### Overall conclusion Benchmark
+The best one is random walk with drift, but the MAPE is still higher than in ETS(A,N,N).
+##TBATS
+```{r}
+fittbats.p_esp <- tbats(train.Pza_Espana) 
+fctbats.p_esp <- forecast(fittbats.p_esp, h=52*3) 
+accuracy(fctbats.p_esp,test.Pza_Espana)
+checkresiduals(fctbats.p_esp)
+shapiro.test(fctbats.p_esp$residuals)
+```
+Conclusion: This model is still worse than ETS.
+
+# FINAL 1 YEAR FORECAST WITH PZA ESPAÑA
+```{r}
+train <-window(Pza_Espana_weekly_ts, end = c(2017, 52))
+test <-window(Pza_Espana_weekly_ts, start = c(2018,1))
+
+#Plot both to see that it works properly
+autoplot(train)
+autoplot(test)
+```
+##Afnst Equal: BEST MODEL
+```{r}
+fit_afnst <- hybridModel(train, models = "afnst", weights="equal")
+fc_afnst <- forecast(fit_afnst, h=52)
+accuracy(fc_afnst,test)
+checkresiduals(fc_afnst, lag = 156)
+shapiro.test(fc_afnst$residuals)
+autoplot(fc_afnst, color= "red")
+summary(fit_afnst)
+```
+
+
+
+```{r}
+plot(fit_afnst, type="models")
+plot(fit_afnst, type="fit")
+```
+```{r}
+ggtsdisplay((fc_afnst$residuals)^2)
+```
+## AFNT
+```{r}
+fit_afnt <- hybridModel(train, models = "afnt", weights="equal")
+fc_afnt <- forecast(fit_afnt, h=52)
+accuracy(fc_afnt,test)
+checkresiduals(fc_afnt, lag = 156)
+shapiro.test(fc_afnt$residuals)
+autoplot(fc_afnt)
+summary(fit_afnt)
+```
+## AN
+```{r}
+fit_an <- hybridModel(train, models = "an", weights="equal")
+fc_an <- forecast(fit_an, h=52)
+accuracy(fc_an,test)
+checkresiduals(fc_an, lag = 156)
+shapiro.test(fc_an$residuals)
+autoplot(fc_an)
+summary(fit_an)
+```
+
+##Arima(2,1,2)
+```{r}
+(arima.212 <- Arima(train, order = c(2,1,2), include.mean = T))
+fit212 <- forecast (train, h = 52)
+accuracy(fit212,test)
+checkresiduals(fit212)
+shapiro.test(fit212$residuals)
+```
+
+
+# Casa Campo
+##Visual Inspection
+```{r}
+ggseasonplot(Casa_Campo_weekly_ts)
+ggsubseriesplot(Casa_Campo_weekly_ts)
+autoplot(Casa_Campo_weekly_ts)
+ggAcf(Casa_Campo_weekly_ts)
+```
+Conclusions: From the autoplot we can see a decreasing trend and also some signs of seasonality. From the ACF we can see a clear seasonality.
+## Ts display
+```{r}
+ggtsdisplay(Casa_Campo_weekly_ts, lag.max = 52)
+```
+Conclusions: It doesn´t look stationary (there is seasonality and trend), further tests will be run to check this.
+## BoxCox
+```{r}
+bc.Casa_Campo <- BoxCox(Casa_Campo_weekly_ts, lambda = BoxCox.lambda(Casa_Campo_weekly_ts))
+gridExtra::grid.arrange(autoplot(Casa_Campo_weekly_ts), autoplot(bc.Casa_Campo), nrow=2)
+ggtsdisplay(bc.Casa_Campo)
+```
+Conclusions: There is no major difference when applying BoxCox, that is why we will proceed without using it.
+##ARIMA
+###Deseasonalize
+```{r}
+nsdiffs(Casa_Campo_weekly_ts, test = "seas")
+isSeasonal(Casa_Campo_weekly_ts)
+isSeasonal(Casa_Campo_weekly_ts, test='qs')
+isSeasonal(Casa_Campo_weekly_ts, test='fried')
+isSeasonal(Casa_Campo_weekly_ts, test='kw')
+isSeasonal(Casa_Campo_weekly_ts, test='seasdum')
+isSeasonal(Casa_Campo_weekly_ts, test='welch')
+
+summary(wo(Casa_Campo_weekly_ts))
+```
+One of the tests does not identify seasonalty, but the rest do so, we will now take 2 paths, deseasonalizing and without deseasonalizing.
+#### Path 1: No Deseasonalizing
+##### Detrend
+```{r}
+adf.test(Casa_Campo_weekly_ts)
+summary(ur.kpss(Casa_Campo_weekly_ts))
+ndiffs(Casa_Campo_weekly_ts, test = "adf")
+```
+Conclusions: ADF indicates it is already stationary and KPSS indicates it is not, we will take 2 paths again
+##### Path 1.1: ADF no differencing
+```{r}
+ndt.Casa_Campo <- Casa_Campo_weekly_ts
+ggtsdisplay(ndt.Casa_Campo)
+```
+Conclusion: This is clearly not stationary, this path ends here.
+
+##### Path 1.2: KPSS differencing
+```{r}
+dt.Casa_Campo <- diff(Casa_Campo_weekly_ts)
+ggtsdisplay(dt.Casa_Campo)
+```
+Conclusion: It seems stationary, but we will doublecheck with further tests
+```{r}
+adf.test(dt.Casa_Campo)
+summary(ur.kpss(dt.Casa_Campo))
+ndiffs(dt.Casa_Campo, test = "adf")
+```
+Conclusion: ADF and KPSS agree we don't need further differences, we will try out the following models: ARIMA(0,1,1),ARIMA(2,1,2), ARIMA(3,1,2), ARIMA(2,1,0), ARIMA(3,1,0)
+```{r}
+#ARIMA(0,1,1)
+(arima011.c_campo <- Arima (ndt.Casa_Campo, order = c(0,1,1)))
+#ARIMA(2,1,2)
+(arima212.c_campo <- Arima (ndt.Casa_Campo, order = c(2,1,2)))
+#ARIMA(3,1,2)
+(arima312.c_campo<- Arima (ndt.Casa_Campo, order = c(3,1,2)))
+#ARIMA(2,1,0)
+(arima210.c_campo <- Arima (ndt.Casa_Campo, order = c(2,1,0)))
+#ARIMA(3,1,0)
+(arima310.c_campo <- Arima (ndt.Casa_Campo, order = c(3,1,0)))
+```
+###### AutoArima: ATTENTION RUNS SLOWLY
+```{r}
+#(nds.auto_Casa.Campo<-auto.arima(ndt.Casa_Campo, approximation = F, stepwise = F, trace = T, nmodels = 100, ic = c("aicc"), test = c("kpss"), seasonal = F, stationary = F))
+```
+Conclusion: The best models in terms of AICc are ARIMA(2,1,2) and ARIMA(0,1,2)
+#### Path 2:Deseasonalizing
+```{r}
+ds.Casa_Campo <- diff(Casa_Campo_weekly_ts, lag = 52)
+ggtsdisplay(ds.Casa_Campo)
+```
+Conclusion: The ts is already much less seasonal, lets check with the tests.
+```{r}
+# Is it deseasonalized now?
+nsdiffs(ds.Casa_Campo, test = "seas")
+isSeasonal(ds.Casa_Campo)
+isSeasonal(ds.Casa_Campo, test='qs')
+isSeasonal(ds.Casa_Campo, test='fried')
+isSeasonal(ds.Casa_Campo, test='kw')
+isSeasonal(ds.Casa_Campo, test='seasdum')
+isSeasonal(ds.Casa_Campo, test='welch')
+
+summary(wo(ds.Casa_Campo))
+```
+Conclusion: All tests indicate that the data is not seasonal anymore
+##### Detrend
+```{r}
+adf.test(ds.Casa_Campo)
+summary(ur.kpss(ds.Casa_Campo))
+ndiffs(ds.Casa_Campo, test = "adf")
+```
+Conclusion: both tests agree that no further differencing is necesary, meaning our ts is already stationary. We will consider the following models: ARIMA(1,0,1)(2,1,1)[52], ARIMA (1,0,3)(2,1,1)[52], ARIMA (2,0,3)(3,1,1)[52], ARIMA (1,0,1)(3,1,1)[52], ARIMA (2,0,1)(2,1,1)[52] INFINITO, ARIMA (1,0,3)(3,1,1)[52], ARIMA (2,0,3)(2,1,1)[52]
+#### Some of these Arimas are infinite, so they don´t run properly, if you want to try take away the hashtags
+```{r}
+#ARIMA(1,0,1)(2,1,1)[52]
+#(arima101211.c_campo <- Arima (ndt.Casa_Campo, order = c(1,0,1), seasonal = c(2,1,1)))
+#ARIMA (1,0,3)(2,1,1)[52]
+#(arima103211.c_campo<- Arima (ndt.Casa_Campo, order = c(1,0,3), seasonal = c(2,1,1)))
+#ARIMA (2,0,3)(3,1,1)[52] - inf
+#(arima203311.c_campo <- Arima (ndt.Casa_Campo, order = c(2,0,3), seasonal = c(3,1,1)))
+#ARIMA (1,0,1)(3,1,1)[52]
+#(arima101311.c_campo <- Arima (ndt.Casa_Campo, order = c(1,0,1), seasonal = c(3,1,1)))
+#ARIMA (2,0,1)(2,1,1)[52] 
+#(arima201211.c_campo <- Arima (ndt.Casa_Campo, order = c(2,0,1), seasonal = c(2,1,1)))
+#ARIMA (1,0,3)(3,1,1)[52]
+#(arima103311.c_campo<- Arima (ndt.Casa_Campo, order = c(1,0,3), seasonal = c(3,1,1)))
+#ARIMA (2,0,3)(2,1,1)[52]
+#(arima203211.c_campo<- Arima (ndt.Casa_Campo, order = c(2,0,3), seasonal = c(2,1,1)))
+```
+
+##### AutoSArima
+```{r}
+(s.auto_Casa.Campo<-auto.arima(ndt.Casa_Campo, approximation = F, stepwise = F, trace = T, nmodels = 100, ic = c("aicc"), test = c("kpss"), seasonal = T, stationary = F))
+```
+##STLF
+```{r}
+(fitets.c_campo <- stlf(train.Casa_Campo, method = "ets", h = 52*2))
+fcets.c_campo <- forecast (fitets.c_campo)
+accuracy(fcets.c_campo,test.Casa_Campo)
+checkresiduals(fcets.c_campo)
+shapiro.test(fcets.c_campo$residuals)
+```
+##Benchmarks
+###Average
+```{r}
+fitav.c_campo <- meanf(train.Casa_Campo, h = 52*2)
+fcav.c_campo <- forecast (fitav.c_campo)
+accuracy(fcav.c_campo,test.Casa_Campo)
+checkresiduals(fcav.c_campo)
+shapiro.test(fcav.c_campo$residuals)
+```
+### Random Walk
+```{r}
+fitrw.c_campo <- rwf(train.Casa_Campo, h = 52*2)
+fcrw.c_campo <- forecast (fitrw.c_campo)
+accuracy(fcrw.c_campo,test.Casa_Campo)
+checkresiduals(fcrw.c_campo)
+shapiro.test(fcrw.c_campo$residuals)
+```
+### Seasonal Naive
+```{r}
+fitsn.c_campo <- snaive(train.Casa_Campo, h = 52*2)
+fcsn.c_campo <- forecast (fitsn.c_campo)
+accuracy(fcsn.c_campo,test.Casa_Campo)
+checkresiduals(fcsn.c_campo)
+shapiro.test(fcsn.c_campo$residuals)
+```
+###Random Walk with Drift
+```{r}
+fitrwd.c_campo <- rwf(train.Casa_Campo, h = 52*2, drift = T)
+fcrwd.c_campo <- forecast (fitrwd.c_campo)
+accuracy(fcrwd.c_campo,test.Casa_Campo)
+checkresiduals(fcrwd.c_campo)
+shapiro.test(fcrwd.c_campo$residuals)
+```
+###Overall Conclusion Benchmark
+The best benchark model is the seasonal naive one according to MAPE.
+##Regression
+### Based on Trend
+```{r}
+trend.c_campo<-tslm(ndt.Casa_Campo~trend)
+summary(trend.c_campo)
+checkresiduals(trend.c_campo)
+autoplot(ndt.Casa_Campo)+
+  autolayer(fitted(trend.c_campo),series = "Linear")
+fitlin.c_campo<-tslm(train.Casa_Campo~trend)
+fclin.c_campo<-forecast(fitlin.c_campo, h = 52*2)
+autoplot(fclin.c_campo)
+checkresiduals(fclin.c_campo)
+accuracy(fclin.c_campo, test.Casa_Campo)
+shapiro.test(fclin.c_campo$residuals)
+```
+#### After deseasonalizing with seasonal difference
+```{r}
+trendds.c_campo<-tslm(ds.Casa_Campo~trend)
+summary(trendds.c_campo)
+checkresiduals(trendds.c_campo)
+fitlin.ds.c_campo<-tslm(diff(train.Casa_Campo, lag = 52)~trend)
+fclin.ds.c_campo<-forecast(fitlin.ds.c_campo, h = 52*2)
+autoplot(fclin.ds.c_campo)
+checkresiduals(fclin.ds.c_campo)
+accuracy(fclin.ds.c_campo, test.Casa_Campo)
+shapiro.test(fclin.ds.c_campo$residuals)
+```
+### Trend and Seasonality
+```{r}
+Casa_Campo.t1<-tslm(ndt.Casa_Campo~trend + season)
+summary(Casa_Campo.t1)
+checkresiduals(Casa_Campo.t1)
+autoplot(ndt.Casa_Campo)+
+  autolayer(fitted(Casa_Campo.t1), series = "Trend + seasonality")
+fit.ts <- tslm(train.Casa_Campo ~ trend + season)
+fc4<-forecast(fit.ts, h = 52*2)
+autoplot(fc4)
+checkresiduals(fc4)
+accuracy(fc4, test.Casa_Campo)
+```
+###Overall Conclusion Regression
+The regression against trend and seasonality is the best model according to MAPE
+## TBATS
+```{r}
+fittbats.c_campo <- tbats(train.Casa_Campo) 
+fctbats.c_campo <- forecast(fittbats.c_campo, h=52*2) 
+autoplot(fctbats.c_campo)
+checkresiduals(fctbats.c_campo)
+accuracy(fctbats.c_campo, test.Casa_Campo)
+```
+## NNETAR
+```{r}
+set.seed(42) 
+(fitnnetar.c_campo <- nnetar(train.Casa_Campo) )
+fcnnetar.c_campo <- forecast(fitnnetar.c_campo, h=52*2)
+autoplot(fcnnetar.c_campo)
+checkresiduals(fcnnetar.c_campo)
+accuracy(fcnnetar.c_campo, test.Casa_Campo)
+shapiro.test(fcnnetar.c_campo$residuals)
+```
+## Hybrid Models
+### Afnst Equal
+```{r}
+fitafnst.c_campo <- hybridModel(train.Casa_Campo, models = "afnst", weights="equal")
+fcafnst.c_campo <- forecast(fitafnst.c_campo, h=52*2)
+accuracy(fcafnst.c_campo,test.Casa_Campo)
+checkresiduals(fcafnst.c_campo, lag = 156)
+shapiro.test(fcafnst.c_campo$residuals)
+```
+### Afnst insample
+```{r}
+fitafnst.in.c_campo <- hybridModel(train.Casa_Campo, models = "afnst", weights="insample")
+fcafnst.in.c_campo <- forecast(fitafnst.in.c_campo, h=52*2)
+accuracy(fcafnst.in.c_campo,test.Casa_Campo)
+checkresiduals(fcafnst.in.c_campo, lag = 156)
+shapiro.test(fcafnst.in.c_campo$residuals)
+```
+### Afns equal
+```{r}
+fitafns.c_campo <- hybridModel(train.Casa_Campo, models = "afns", weights="equal")
+fcafns.c_campo<- forecast(fitafns.c_campo, h=52*2)
+autoplot(fcafns.c_campo)
+accuracy(fcafns.c_campo, test.Casa_Campo)
+checkresiduals(fcafns.c_campo,  lag = 156)
+```
+
+### Afns insample
+```{r}
+fitafns.in.c_campo <- hybridModel(train.Casa_Campo, models = "afns", weights="insample")
+fcafns.in.c_campo <- forecast(fitafns.in.c_campo, h=52*2)
+autoplot(fcafns.in.c_campo)
+accuracy(fcafns.in.c_campo, test.Casa_Campo)
+checkresiduals(fcafns.in.c_campo,  lag = 156)
+```
+
